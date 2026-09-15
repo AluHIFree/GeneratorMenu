@@ -7,10 +7,11 @@ import sys
 from pathlib import Path
 
 from generator import (
+    MenuMode,
+    default_data_dir,
     default_template_path,
     find_default_files,
     generate_menus,
-    user_data_dir,
 )
 
 
@@ -19,6 +20,12 @@ def main(argv: list[str] | None = None) -> int:
         description="Генерация ежедневных меню из типового меню и календаря питания"
     )
     parser.add_argument("--cli", action="store_true", help="Запуск без интерфейса")
+    parser.add_argument(
+        "--mode",
+        choices=("breakfast", "school", "internat"),
+        default="school",
+        help="breakfast — только завтраки; school — завтраки и обеды; internat — интернат",
+    )
     parser.add_argument("--tm", type=Path, help="Файл типового меню tm*-sm.xlsx")
     parser.add_argument("--kp", type=Path, help="Файл календаря питания kp*.xlsx")
     parser.add_argument("--out", type=Path, help="Папка для ежедневных меню")
@@ -37,14 +44,25 @@ def main(argv: list[str] | None = None) -> int:
         "--data-dir",
         type=Path,
         default=None,
-        help="Каталог с исходными xlsx (по умолчанию — рядом с программой)",
+        help="Каталог с исходными xlsx (по умолчанию — по режиму)",
     )
     args = parser.parse_args(argv)
 
-    data_dir = args.data_dir or user_data_dir()
+    mode: MenuMode = args.mode
+    data_dir = args.data_dir or default_data_dir(mode)
 
     if not args.cli:
-        from gui import run_app
+        try:
+            from gui import run_app
+        except ImportError as exc:
+            print(
+                "Не удалось запустить GUI (нужен пакет tk).\n"
+                "На Arch: sudo pacman -S tk\n"
+                "Или запустите CLI: python main.py --cli --mode internat\n"
+                f"Детали: {exc}",
+                file=sys.stderr,
+            )
+            return 1
 
         run_app(start_dir=data_dir)
         return 0
@@ -53,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
     tm = args.tm or tm
     kp = args.kp or kp
     out = args.out or (data_dir / "output")
-    template = default_template_path()
+    template = default_template_path(mode)
 
     if not tm or not tm.exists():
         print("Не найден файл типового меню (tm*-sm.xlsx)", file=sys.stderr)
@@ -74,6 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         kp,
         out,
         template,
+        mode=mode,
         months=months,
         overwrite=not args.no_overwrite,
         log=print,

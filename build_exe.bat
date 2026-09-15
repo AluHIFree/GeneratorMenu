@@ -8,6 +8,7 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed ^
   --collect-all customtkinter ^
   --hidden-import openpyxl ^
   --hidden-import openpyxl.cell._writer ^
+  --hidden-import gui ^
   main.py
 if exist "dist\GeneratorEzhednevnyhMenyu.exe" (
   copy /Y "dist\GeneratorEzhednevnyhMenyu.exe" "..\GeneratorEzhednevnyhMenyu.exe" >nul
