@@ -48,7 +48,7 @@ MODE_HINTS = {
 class App(ctk.CTk):
     def __init__(self, start_dir: Path | None = None) -> None:
         super().__init__()
-        self.title("Генератор ежедневных меню")
+        self.title("Генератор ежедневных меню v 2.0")
         self.geometry("820x660")
         self.minsize(720, 580)
 
@@ -74,7 +74,7 @@ class App(ctk.CTk):
         root.pack(fill="both", expand=True, padx=14, pady=14)
 
         ctk.CTkLabel(
-            root, text="Генератор ежедневных меню", font=ctk.CTkFont(size=20, weight="bold")
+            root, text="Генератор ежедневных меню v 2.0", font=ctk.CTkFont(size=20, weight="bold")
         ).pack(anchor="w", **pad)
 
         mode_row = ctk.CTkFrame(root, fg_color="transparent")
