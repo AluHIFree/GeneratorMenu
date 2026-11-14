@@ -504,12 +504,35 @@ def _meal_layout(mode: MenuMode) -> list[tuple[str, int, int]]:
             row += count
         return layout
     if mode == "breakfast":
-        # Обед в шаблоне остаётся с пустыми разделами (как в эталоне «только завтраки»)
+        # Обед: только сетка формы (разделы A/B), блюда не пишем
         return [("Завтрак", 4, SCHOOL_BREAKFAST_ROWS)]
     return [
         ("Завтрак", 4, SCHOOL_BREAKFAST_ROWS),
         ("Обед", 11, SCHOOL_LUNCH_ROWS),
     ]
+
+
+def _form_data_row_range(mode: MenuMode) -> range:
+    """Строки тела ежедневной формы, куда могут попасть блюда."""
+    if mode == "internat":
+        last = 3 + sum(count for _, count in INTERNAT_MEALS)
+        return range(4, last + 1)
+    # школа: завтрак 4–10 и обед 11–17 (в т.ч. режим «только завтраки»)
+    return range(4, 4 + SCHOOL_BREAKFAST_ROWS + SCHOOL_LUNCH_ROWS)
+
+
+def _clear_template_dish_values(ws, mode: MenuMode) -> None:
+    """
+    Убирает из скопированной формы значения блюд (C–J).
+
+    templates/ — только вёрстка/заливка. Название, цена, калории, граммы
+    и прочие поля блюда должны приходить исключительно из типового меню.
+    Разделы (A/B) для неиспользуемого обеда в режиме breakfast оставляем
+    как сетку формы.
+    """
+    for r in _form_data_row_range(mode):
+        for c in range(3, 11):  # C–J: рецептура … углеводы
+            ws.cell(r, c).value = None
 
 
 def generate_daily_file(
@@ -524,12 +547,16 @@ def generate_daily_file(
         raise KeyError(f"В типовом меню нет дня {planned.menu_day}")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Форма (границы/заливка/подписи колонок) — из templates/; данные блюд — нет
     shutil.copy2(template_path, output_path)
 
     wb = load_workbook(output_path)
     ws = wb.active
     if ws.title != "Лист_1":
         ws.title = "Лист_1"
+
+    # Стираем любые значения блюд из формы, чтобы не смешивать с tm
+    _clear_template_dish_values(ws, mode)
 
     # Заливки из шаблона (не создаём новые — иначе Excel может потерять FFFFF2CB)
     section_fill = copy(ws["B11"].fill)
